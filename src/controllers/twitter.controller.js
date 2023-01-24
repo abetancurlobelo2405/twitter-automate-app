@@ -252,8 +252,7 @@ export const postThreadTweet = async (req, res) => {
               accept: "application/json",
             },
           });
-          const data = await response.json();
-          return { id: data.data.id, text: data.data.text };
+          return { id: response.data.id, text: response.data.text };
         } catch (error) {
           console.log("error", error);
         }
@@ -289,8 +288,8 @@ export const postThreadTweet = async (req, res) => {
               "content-type": "application/json",
               accept: "application/json",
             });
-            const data = await response.json();
-            currentTweetID = data.data.id;
+            console.log(response);
+            currentTweetID = response.data.id;
           } catch (error) {
             console.log("error");
           }
