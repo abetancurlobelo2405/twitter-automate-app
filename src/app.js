@@ -15,7 +15,7 @@ const app = express();
 
 app.use(
   cors({
-    origin: "https://effulgent-cuchufli-c1d7d6.netlify.app",
+    origin: "*",
     credentials: true,
   })
 );
