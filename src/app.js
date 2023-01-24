@@ -30,6 +30,4 @@ app.post("/", verifyToken, (req, res) => {
 app.use("/twitter/login", twitterLoginRouter);
 app.use("/twitter/generate", generatorAIRouter);
 
-app.listen(PORT, "0.0.0.0", () =>
-  console.log(`Server running on port ${PORT}`)
-);
+app.listen(PORT, () => console.log(`Server running on port ${PORT}`));

@@ -14,7 +14,7 @@ connectDB();
 const consumerKey = process.env.API_KEY;
 const consumerSecret = process.env.API_SECRET;
 const callbackUrl =
-  "oauth_callback=https%3A%2F%2Fmain--effulgent-cuchufli-c1d7d6.netlify.app%2Fauth-page";
+  "oauth_callback=http%3A%2F%2Ftwitterautomation.up.railway.app";
 const requestTokenURL = `https://api.twitter.com/oauth/request_token?${callbackUrl}`;
 const accessTokenURL = "https://api.twitter.com/oauth/access_token";
 
