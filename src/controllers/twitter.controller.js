@@ -7,6 +7,7 @@ import dotenv from "dotenv";
 import User from "../models/User.js";
 import { connectDB } from "../lib/mongoDBconnect.js";
 import moment from "moment-timezone";
+import axios from "axios";
 import cron from "node-cron";
 dotenv.config();
 connectDB();
@@ -244,9 +245,7 @@ export const postThreadTweet = async (req, res) => {
           )
         );
         try {
-          const response = await fetch(createTweet, {
-            method: "POST",
-            body: JSON.stringify(principalTweet),
+          const response = await axios.post(createTweet, principalTweet, {
             headers: {
               Authorization: authHeader["Authorization"],
               "content-type": "application/json",
@@ -285,13 +284,10 @@ export const postThreadTweet = async (req, res) => {
             )
           );
           try {
-            const response = await fetch(createTweet, {
-              method: "POST",
-              body: JSON.stringify(threadTweet),
-              headers: {
-                Authorization: authHeader["Authorization"],
-                "Content-Type": "application/json",
-              },
+            const response = await axios.post(createTweet, threadTweet, {
+              Authorization: authHeader["Authorization"],
+              "content-type": "application/json",
+              accept: "application/json",
             });
             const data = await response.json();
             currentTweetID = data.data.id;
