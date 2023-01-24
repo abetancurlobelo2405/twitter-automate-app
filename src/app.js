@@ -5,7 +5,7 @@ import cors from "cors";
 import dotenv from "dotenv";
 import cookieParser from "cookie-parser";
 import bodyParser from "body-parser";
-import session from "express-session";
+import cron from "node-cron";
 import verifyToken from "./middleware/auth.js";
 
 dotenv.config();
@@ -15,7 +15,7 @@ const app = express();
 
 app.use(
   cors({
-    origin: "*",
+    origin: "https://effulgent-cuchufli-c1d7d6.netlify.app",
     credentials: true,
   })
 );
@@ -29,9 +29,5 @@ app.post("/", verifyToken, (req, res) => {
 
 app.use("/twitter/login", twitterLoginRouter);
 app.use("/twitter/generate", generatorAIRouter);
-
-/**bodyParser.json(options)
- * Parses the text as JSON and exposes the resulting object on req.body.
- */
 
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
