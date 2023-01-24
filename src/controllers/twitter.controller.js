@@ -87,21 +87,21 @@ export const callback = async (req, res) => {
         throw new Error("Cannot get an OAuth request token");
       }
     }
-    await getAccessToken();
+    const accessTokens = await getAccessToken();
 
-    //const dataObject = {};
-    //const dataSplit = accessTokens.split("&");
-    //dataSplit.map((elements) => {
-    //  let keyValue = elements.split("=");
-    //  dataObject[keyValue[0]] = keyValue[1];
-    //});
+    const dataObject = {};
+    const dataSplit = accessTokens.split("&");
+    dataSplit.map((elements) => {
+      let keyValue = elements.split("=");
+      dataObject[keyValue[0]] = keyValue[1];
+    });
     //const newUser = await new User({
     //  userId: dataObject.user_id,
     //  oauthToken: dataObject.oauth_token,
     //  oauthTokenSecret: dataObject.oauth_token_secret,
     //  screenName: dataObject.screen_name,
     //});
-    //const token = jwt.sign(dataObject.user_id, process.env.SECRET_TOKEN_KEY);
+    const token = jwt.sign(dataObject.user_id, process.env.SECRET_TOKEN_KEY);
     //await newUser.save();
     res.json(token);
   } catch (error) {
