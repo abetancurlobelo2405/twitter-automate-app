@@ -252,7 +252,7 @@ export const postThreadTweet = async (req, res) => {
               accept: "application/json",
             },
           });
-          return { id: response.data.id, text: response.data.text };
+          return { id: response.data.data.id, text: response.data.data.text };
         } catch (error) {
           console.log("error", error);
         }
@@ -289,7 +289,7 @@ export const postThreadTweet = async (req, res) => {
               accept: "application/json",
             });
             console.log(response);
-            currentTweetID = response.data.id;
+            currentTweetID = response.data.data.id;
           } catch (error) {
             console.log("error");
           }
