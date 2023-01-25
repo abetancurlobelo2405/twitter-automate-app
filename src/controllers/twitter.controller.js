@@ -14,8 +14,7 @@ connectDB();
 
 const consumerKey = process.env.API_KEY;
 const consumerSecret = process.env.API_SECRET;
-const callbackUrl = `oauth_callback=${process.env.CALLBACK_URL}`;
-const requestTokenURL = `https://api.twitter.com/oauth/request_token?${callbackUrl}`;
+const requestTokenURL = `https://api.twitter.com/oauth/request_token?oauth_callback=${process.env.CALLBACK_URL}`;
 const accessTokenURL = "https://api.twitter.com/oauth/access_token";
 
 const oauth = OAuth({
