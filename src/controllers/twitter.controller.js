@@ -14,8 +14,7 @@ connectDB();
 
 const consumerKey = process.env.API_KEY;
 const consumerSecret = process.env.API_SECRET;
-const callbackUrl =
-  "oauth_callback=https%3A%2F%2Fmain--effulgent-cuchufli-c1d7d6.netlify.app%2Fauth-page";
+const callbackUrl = `oauth_callback=${process.env.CALLBACK_URL}`;
 const requestTokenURL = `https://api.twitter.com/oauth/request_token?${callbackUrl}`;
 const accessTokenURL = "https://api.twitter.com/oauth/access_token";
 
@@ -248,8 +247,6 @@ export const postThreadTweet = async (req, res) => {
           const response = await axios.post(createTweet, principalTweet, {
             headers: {
               Authorization: authHeader["Authorization"],
-              "content-type": "application/json",
-              accept: "application/json",
             },
           });
           return { id: response.data.data.id, text: response.data.data.text };
@@ -263,6 +260,7 @@ export const postThreadTweet = async (req, res) => {
 
         for (let i = 0; i < dataArray.length; i++) {
           const tweet = dataArray[i];
+          console.log(i);
           const token = {
             key: oauthToken,
             secret: oauthTokenSecret,
@@ -284,11 +282,10 @@ export const postThreadTweet = async (req, res) => {
           );
           try {
             const response = await axios.post(createTweet, threadTweet, {
-              Authorization: authHeader["Authorization"],
-              "content-type": "application/json",
-              accept: "application/json",
+              headers: {
+                Authorization: authHeader["Authorization"],
+              },
             });
-            console.log(response);
             currentTweetID = response.data.data.id;
           } catch (error) {
             console.log("error");
