@@ -65,7 +65,7 @@ export const startAuth = async (req, res) => {
 export const callback = async (req, res) => {
   const oauthVerifier = req.body.oauthVerifier;
   const oauthToken = req.body.oauthToken;
-
+  console.log(oauthVerifier, oauthToken);
   try {
     async function getAccessToken() {
       const authHeader = oauth.toHeader(
@@ -74,14 +74,15 @@ export const callback = async (req, res) => {
           method: "POST",
         })
       );
+
       const path = `${accessTokenURL}?oauth_verifier=${oauthVerifier}&oauth_token=${oauthToken}`;
-      const request = await got.post(path, {
+      const request = await axios.post(path, {
         headers: {
           Authorization: authHeader["Authorization"],
         },
       });
-      if (request.body) {
-        return request.body;
+      if (request.data) {
+        return request.data;
       } else {
         throw new Error("Cannot get an OAuth request token");
       }
@@ -94,15 +95,33 @@ export const callback = async (req, res) => {
       let keyValue = elements.split("=");
       dataObject[keyValue[0]] = keyValue[1];
     });
-    const newUser = await new User({
-      userId: dataObject.user_id,
-      oauthToken: dataObject.oauth_token,
-      oauthTokenSecret: dataObject.oauth_token_secret,
-      screenName: dataObject.screen_name,
-    });
     const token = jwt.sign(dataObject.user_id, process.env.SECRET_TOKEN_KEY);
-    await newUser.save();
-    res.json(token);
+
+    const findUser = await User.find({ userId: dataObject.user_id });
+
+    // Checks if user exists, if length 0, means not, so it creates one in "else" condition.
+    if (findUser.length === 0) {
+      const newUser = await new User({
+        userId: dataObject.user_id,
+        screenName: dataObject.screen_name,
+        oauthToken: dataObject.oauth_token,
+        oauthTokenSecret: dataObject.oauth_token_secret,
+        plan: {
+          isSubscribed: false,
+          adventages: { tries: 2, schedules: 1 },
+        },
+      });
+      await newUser.save();
+      console.log(dataObject);
+      res
+        .status(200)
+        .json({ token: token, screenName: dataObject.screen_name });
+    } else {
+      console.log("Encontro el usuario");
+      res
+        .status(200)
+        .json({ token: token, screenName: dataObject.screen_name });
+    }
   } catch (error) {
     console.log("error", error);
   }
@@ -113,18 +132,27 @@ export const postSingleTweet = async (req, res) => {
   const token = req.headers["authorization"];
   const headerText = req.body.headerText;
   const result = req.body.result;
-
+  const isSchedule = req.body.isSchedule;
   const dateValues = req.body.dateValues;
-  console.log(dateValues);
+
   const date = new Date();
+  date.setDate(date.getDate() + Number(dateValues.days));
+  date.setHours(date.getHours() + Number(dateValues.hours));
+  date.setMinutes(date.getMinutes() + Number(dateValues.minutes));
+
+  console.log(`Minutes: ${date.getUTCMinutes()}`);
+  console.log(`Hours: ${date.getUTCHours()}`);
+  console.log(`Current day: ${date.getUTCDate()}`);
+
   const cronExpression = `
-    ${Number(date.getMinutes() + Number(dateValues.minutes))}
-    ${Number(date.getHours() + Number(dateValues.hours))}
-    ${Number(date.getDate() + Number(dateValues.days))}
-    ${date.getMonth() + 1}
-    ${date.getDay()}
+    ${Number(date.getUTCMinutes())}
+    ${Number(date.getUTCHours())}
+    ${Number(date.getUTCDate())}
+    ${date.getUTCMonth() + 1}
+    ${date.getUTCDay()}
   `;
 
+  console.log(cronExpression);
   const data = {
     text: headerText ? `${headerText}\n${result}` : result,
   };
@@ -149,37 +177,49 @@ export const postSingleTweet = async (req, res) => {
       );
 
       const fetchTwitterAPI = async () => {
-        return await fetch(
-          createTweet,
-          {
-            method: "POST",
-            body: JSON.stringify(data),
+        try {
+          await axios.post(createTweet, data, {
             headers: {
               Authorization: authHeader["Authorization"],
-              "Content-Type": "application/json",
-              accept: "application/json",
             },
+          });
+        } catch (error) {
+          if (error.response.status === 403) {
+            res.status(403).json({ message: "Duplicated content" });
+          }
+
+          if (error.response.status === 400 || error.response.status === 401) {
+            res.status(403).json({ message: "error" });
+          }
+        }
+      };
+
+      if (isSchedule) {
+        const job = cron.schedule(
+          cronExpression,
+          async () => {
+            await fetchTwitterAPI();
+            console.log("published!");
+            const userUpdated = await User.updateOne(
+              { userId: id },
+              { $pull: { scheduleTweets: { cronId: job.options.name } } }
+            );
+            console.log(userUpdated);
+            job.stop();
           },
           {
             timezone: "UTC",
           }
         );
-      };
-
-      if (
-        dateValues.days === 0 &&
-        dateValues.hours === 0 &&
-        dateValues.minutes === 0
-      ) {
+        user.scheduleTweets = user.scheduleTweets.concat({
+          cronId: job.options.name,
+          result,
+          date,
+        });
+        await user.save();
+      } else {
         console.log("NO-escheudelado");
         await fetchTwitterAPI();
-      } else {
-        console.log("escheudelado");
-        const job = cron.schedule(cronExpression, async () => {
-          await fetchTwitterAPI();
-          console.log("published!");
-          job.stop();
-        });
       }
     };
 
@@ -193,8 +233,7 @@ export const postThreadTweet = async (req, res) => {
   const createTweet = `https://api.twitter.com/2/tweets`;
   const token = req.headers["authorization"];
   const headerText = req.body.headerText;
-  const data = req.body.result;
-
+  const result = req.body.result;
   const dateValues = req.body.dateValues;
   const isSchedule = req.body.isSchedule;
 
@@ -226,7 +265,7 @@ export const postThreadTweet = async (req, res) => {
     const tweetThreadPost = async () => {
       const principalTweet = async () => {
         const principalTweet = {
-          text: headerText !== undefined ? headerText : data[0],
+          text: headerText !== undefined ? headerText : result[0],
         };
 
         const token = {
@@ -250,11 +289,17 @@ export const postThreadTweet = async (req, res) => {
           });
           return { id: response.data.data.id, text: response.data.data.text };
         } catch (error) {
-          console.log("error", error);
+          if (error.response.status === 403) {
+            res.status(403).json({ message: "Duplicated content" });
+          }
+
+          if (error.response.status === 400 || error.response.status === 401) {
+            res.status(403).json({ message: "error" });
+          }
         }
       };
       await principalTweet().then(async (firstData) => {
-        const dataArray = headerText !== undefined ? data : data.slice(1);
+        const dataArray = headerText !== undefined ? result : result.slice(1);
         let currentTweetID = firstData.id;
 
         for (let i = 0; i < dataArray.length; i++) {
@@ -287,29 +332,44 @@ export const postThreadTweet = async (req, res) => {
             });
             currentTweetID = response.data.data.id;
           } catch (error) {
-            console.log("error");
+            if (error.response.status === 403) {
+              res.status(403).json({ message: "Duplicated content" });
+            }
+
+            if (
+              error.response.status === 400 ||
+              error.response.status === 401
+            ) {
+              res.status(403).json({ message: "error" });
+            }
           }
         }
       });
     };
 
-    if (
-      (isSchedule && dateValues.days > 0) ||
-      dateValues.hours > 0 ||
-      dateValues.minutes > 0
-    ) {
+    if (isSchedule) {
       console.log("escheudelado thread");
       const job = cron.schedule(
         cronExpression,
         async () => {
           await tweetThreadPost();
           console.log("published!");
+          await User.updateOne(
+            { userId: id },
+            { $pull: { scheduleTweets: { cronId: job.options.name } } }
+          );
           job.stop();
         },
         {
           timezone: "UTC",
         }
       );
+      user.scheduleTweets = user.scheduleTweets.concat({
+        cronId: job.options.name,
+        result,
+        date,
+      });
+      await user.save();
     } else {
       console.log("NO-escheudelado thread");
       await tweetThreadPost();

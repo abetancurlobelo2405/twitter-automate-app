@@ -32,9 +32,11 @@
     "oauth": "^0.10.0",
     "oauth-1.0a": "^2.2.6",
     "openai": "^3.1.0",
-    "querystring": "^0.2.1"
+    "querystring": "^0.2.1",
+    "verify-paddle-webhook": "^1.1.0"
   },
   "devDependencies": {
+    "ngrok": "^4.3.3",
     "nodemon": "^2.0.20"
   }
 }
